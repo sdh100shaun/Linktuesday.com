@@ -1,0 +1,137 @@
+/* @override http://linktuesday/css/style.css */
+
+body, html {
+    height: 100%;
+    width: 100%;
+}
+
+.link {
+		min-height: 75px;
+}
+
+.linktitle {
+		width: 200px;
+		float: left;
+		word-wrap: break-word;
+}
+
+.actuallink {
+    width: 200px;
+    float: left;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.actuallink a {
+    color: #d3d3d3 !important;
+}
+
+.tweet {
+	padding-left: 5px;
+    height: 75px;
+    font-size: 0.9em;
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+.tweet img {
+	padding-right: 5px;
+}
+
+.meta {
+	font-style: italic;
+	font-size: 0.8em;
+}
+
+.tweetcount {
+	background-image: url('/images/text.png');
+	width: 39px;
+	height: 46px;
+	float: right;
+	margin-right: 5px;
+}
+
+.tweetcount a {
+	text-decoration: none;
+	font-size: 1.5em;
+	font-weight: bold;
+	text-align: center;
+	position: relative;
+	top: 5px;
+	margin-left: 15px;
+}
+
+.tweetcollection {
+    display: none;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    clear:left;
+}
+
+#greenline {
+    height: 6px;
+    background-color: #e0e480;
+    background-image: url('/images/topline.png');
+}
+
+#logoline {
+    height: 54px;
+    text-align: left;
+    padding-left: 16px;
+}
+
+.greyline {
+    height: 1px;
+    background-color: #ccc;
+}
+
+#doc3 {
+    background-color: #fff;
+    background-image: url('/images/gradient.png');
+    background-repeat: repeat-x;
+    margin: 0px;
+}
+
+.yui-u {
+    width: 294px !important;
+    background-image: url('/images/columnheader.png');
+    background-repeat: no-repeat;
+}
+
+.yui-u h2 {
+    height: 40px;
+    font-size: 2em;
+    text-align: center;
+    margin-top: 12px;
+}
+
+.yui-u, .yui-u a, .yui-u h2 {
+    color: #515151;
+}
+
+.yui-gb {
+	width: 960px;
+	margin: 0px auto;
+}
+
+.inner {
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 5px;
+    border-left: 1px lightgray solid;
+    border-right: 1px lightgray solid;
+    background-color: white;
+}
+
+#hd {
+    height: 30px;
+}
+
+#ft {
+    margin-top: 50px;
+    font-size: 0.8em;
+}
+
+#ft, #ft a {
+    color: #515151;
+}

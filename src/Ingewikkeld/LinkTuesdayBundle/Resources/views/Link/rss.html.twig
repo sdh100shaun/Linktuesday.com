@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+<channel>
+	<title>LinkTuesday.com</title>
+	<atom:link href="http://linktuesday.com/feed/" rel="self" type="application/rss+xml" />
+	<link>http://linktuesday.com</link>
+	<description>Interesting links posted on Twitter with the #linktuesday hashtag</description>
+	<lastBuildDate>{{ date }}</lastBuildDate>
+	<generator>http://linktuesday.com/</generator>
+	<language>en</language>
+
+    {% for item in items %}
+    <item>
+		<title>{{ item.title }}</title>
+		<link>{{ item.full_uri }}</link>
+		<pubDate>{{ item.FirstTweet.DisplayDate }}</pubDate>
+		<dc:creator>{{ item.FirstTweet.user }}</dc:creator>
+		<guid isPermaLink="false">{{ item.full_uri }}</guid>
+		<description><![CDATA[{{ item.title }}]]></description>
+        <content:encoded><![CDATA[{{ item.title }}]]></content:encoded>
+    </item>
+    {% endfor %}
+    
+	</channel>
+</rss>

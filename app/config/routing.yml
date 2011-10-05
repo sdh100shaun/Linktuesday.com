@@ -1,0 +1,3 @@
+_link:
+    resource: "@IngewikkeldLinkTuesdayBundle/Controller/LinkController.php"
+    type:     annotation

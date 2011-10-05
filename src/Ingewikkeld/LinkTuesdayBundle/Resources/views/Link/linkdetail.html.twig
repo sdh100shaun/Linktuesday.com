@@ -1,0 +1,12 @@
+{% set link = row.0 %}
+<div class="link">
+    <div class="tweetcount"><a href="javascript://" onClick="$('#tweets_for_{{ link.id }}_in_{{ type }}').toggle(300);" title="see the tweets about this link">{{ row.tweetCount }}</a></div>
+    <div class="linktitle"><a href="javascript://" onClick="$('#tweets_for_{{ link.id }}_in_{{ type }}').toggle(300);" title="see the tweets about this link">{{ link.title }}</a></div>
+    <div class="actuallink"><a href="{{ link.full_uri }}" target="_blank" title="open this link in a new window">{{ link.domain }}</a></div>
+    <br /><br clear="all" />
+    <div id="tweets_for_{{ link.id }}_in_{{ type }}" class="tweetcollection">
+    {% for tweet in link.tweets %}
+            {% include 'IngewikkeldLinkTuesdayBundle:Link:tweetdetail.html.twig' with {'tweet': tweet} %}
+    {% endfor %}
+    </div>
+</div>

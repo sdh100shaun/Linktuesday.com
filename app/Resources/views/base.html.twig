@@ -1,0 +1,29 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+ "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+   <title>{% block title %}LinkTuesday{% endblock %}</title>
+   <link rel="stylesheet" href="http://yui.yahooapis.com/2.8.0r4/build/reset-fonts-grids/reset-fonts-grids.css" type="text/css" />
+   {% block stylesheets %}{% endblock %}
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}" />
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="alternate" type="application/rss+xml" title="Rss" href="http://linktuesday.com/feed" />
+    <script language="JavaScript" src="/js/jquery.js"></script>
+</head>
+<body>
+<div id="greenline">&nbsp;</div>
+<div id="logoline"><img src="/images/linktuesday.png" alt="LinkTuesday" /></div>
+<div class="greyline">&nbsp;</div>
+<div id="doc3" class="yui-t7">
+   <div id="hd" role="banner">&nbsp;</div>
+   <div id="bd" role="main">
+	    <div class="yui-gb">
+        {% block body %}{% endblock %}
+        {% block javascripts %}{% endblock %}
+        </div>
+
+	</div>
+</div>
+<div id="ft" role="contentinfo"><p>built by <a href="http://ingewikkeld.net/">Ingewikkeld.net</a></p></div>
+</body>
+</html>
