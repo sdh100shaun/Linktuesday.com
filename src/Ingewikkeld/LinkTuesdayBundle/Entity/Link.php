@@ -3,50 +3,51 @@
 namespace Ingewikkeld\LinkTuesdayBundle\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\Mapping as ORM;
 use Buzz\Browser;
 
 use Ingewikkeld\LinkTuesdayBundle\Entity\Tweet;
 
 /**
- * @orm:Entity(repositoryClass="Ingewikkeld\LinkTuesdayBundle\Entity\LinkRepository")
+ * @ORM\Entity(repositoryClass="Ingewikkeld\LinkTuesdayBundle\Entity\LinkRepository")
  */
 class Link
 {
     /**
      * @var integer
      *
-     * @orm:Id
-     * @orm:Column(type="integer")
-     * @orm:GeneratedValue(strategy="IDENTITY")
+     * @ORM\Id
+     * @ORM\Column(type="integer")
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     protected $id;
 
     /**
      * @var string
      *
-     * @orm:Column(type="string", length="255")
+     * @ORM\Column(type="string", length="255")
      */
     protected $uri;
 
     /**
      * @var string
      *
-     * @orm:Column(type="string", length="255")
+     * @ORM\Column(type="string", length="255")
      */
     public $full_uri;
 
     /**
      * @var string
      *
-     * @orm:Column(type="string", length="255")
+     * @ORM\Column(type="string", length="255")
      */
     protected $title;
 
     /**
      * @var ArrayCollection
      *
-     * @orm:OneToMany(targetEntity="Tweet", mappedBy="link")
-     * @orm:OrderBy({"date" = "ASC"})
+     * @ORM\OneToMany(targetEntity="Tweet", mappedBy="link")
+     * @ORM\OrderBy({"date" = "ASC"})
      */
     protected $tweets;
 

@@ -3,61 +3,62 @@
 namespace Ingewikkeld\LinkTuesdayBundle\Entity;
 
 use Ingewikkeld\LinkTuesdayBundle\Entity\Link;
+use Doctrine\ORM\Mapping as ORM;
 
 /**
- * @orm:Entity
+ * @ORM\Entity
  */
 class Tweet
 {
     /**
      * @var integer
      *
-     * @orm:Id
-     * @orm:Column(type="integer")
-     * @orm:GeneratedValue(strategy="IDENTITY")
+     * @ORM\Id
+     * @ORM\Column(type="integer")
+     * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     protected $id;
 
     /**
      * @var string
      *
-     * @orm:Column(type="string", length="255")
+     * @ORM\Column(type="string", length="255")
      */
     protected $uri;
 
     /**
      * @var string
      *
-     * @orm:Column(type="string", length="255")
+     * @ORM\Column(type="string", length="255")
      */
     protected $content;
 
     /**
      * @var string
      *
-     * @orm:Column(type="string", length="25")
+     * @ORM\Column(type="string", length="25")
      */
     protected $user;
 
     /**
      * @var string
      *
-     * @orm:Column(type="string", length="255")
+     * @ORM\Column(type="string", length="255")
      */
     protected $profile_image;
 
     /**
      * @var \DateTime
      *
-     * @orm:Column(type="datetime")
+     * @ORM\Column(type="datetime")
      */
     protected $date;
 
     /**
      * @var array
      *
-     * @orm:ManyToOne(targetEntity="Link", inversedBy="tweet")
-     * @orm:JoinColumn(name="link_id", referencedColumnName="id", onDelete="CASCADE")
+     * @ORM\ManyToOne(targetEntity="Link", inversedBy="tweet")
+     * @ORM\JoinColumn(name="link_id", referencedColumnName="id", onDelete="CASCADE")
      */
     protected $link;
 
@@ -135,5 +136,5 @@ class Tweet
     {
       return $this->date->format('c');
     }
-    
+
 }

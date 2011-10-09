@@ -14,7 +14,7 @@ class LinkController extends Controller
      */
     public function indexAction()
     {
-        $em = $this->get('doctrine.orm.default_entity_manager');
+        $em = $this->get('doctrine');
 
         return array(
             'recent'    => $em->getRepository('IngewikkeldLinkTuesdayBundle:Link')->getMostRecentLinks(),
@@ -29,7 +29,7 @@ class LinkController extends Controller
      */
     public function rssAction()
     {
-      $em = $this->get('doctrine.orm.default_entity_manager');
+      $em = $this->get('doctrine');
 
       $items = $em->getRepository('IngewikkeldLinkTuesdayBundle:Link')->getMostRecentLinks();
 

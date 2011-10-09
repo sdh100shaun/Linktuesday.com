@@ -16,7 +16,7 @@ class LinkRepository extends EntityRepository
         return $this->_em->createQuery('SELECT l, COUNT(t.id) AS tweetCount FROM IngewikkeldLinkTuesdayBundle:Link l LEFT JOIN l.tweets t GROUP BY l.full_uri ORDER BY tweetCount DESC')->setMaxResults(10)->getResult();
 
     }
-    
+
     public function getByFullUri($fullUri)
     {
         $result = $this->_em->createQuery("SELECT l FROM IngewikkeldLinkTuesdayBundle:Link l WHERE l.full_uri = :full_uri")->setParameter('full_uri', $fullUri)->getResult();
