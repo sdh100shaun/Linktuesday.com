@@ -25,22 +25,21 @@ class Filesystem
      *
      * By default, if the target already exists, it is not overridden.
      *
-     * @param string $originFile  The original filename
-     * @param string $targetFile  The target filename
-     * @param array  $override    Whether to override an existing file or not
+     * @param string $originFile The original filename
+     * @param string $targetFile The target filename
+     * @param array  $override   Whether to override an existing file or not
      */
     public function copy($originFile, $targetFile, $override = false)
     {
         $this->mkdir(dirname($targetFile));
 
-        $mostRecent = false;
-        if (file_exists($targetFile)) {
-            $statTarget = stat($targetFile);
-            $statOrigin = stat($originFile);
-            $mostRecent = $statOrigin['mtime'] > $statTarget['mtime'];
+        if (!$override && file_exists($targetFile)) {
+            $doCopy = filemtime($originFile) > filemtime($targetFile);
+        } else {
+            $doCopy = true;
         }
 
-        if ($override || !file_exists($targetFile) || $mostRecent) {
+        if ($doCopy) {
             copy($originFile, $targetFile);
         }
     }
@@ -143,9 +142,9 @@ class Filesystem
     /**
      * Creates a symbolic link or copy a directory.
      *
-     * @param string  $originDir      The origin directory path
-     * @param string  $targetDir      The symbolic link name
-     * @param Boolean $copyOnWindows  Whether to copy files if on windows
+     * @param string  $originDir     The origin directory path
+     * @param string  $targetDir     The symbolic link name
+     * @param Boolean $copyOnWindows Whether to copy files if on Windows
      */
     public function symlink($originDir, $targetDir, $copyOnWindows = false)
     {
@@ -175,14 +174,23 @@ class Filesystem
      * @param string $originDir      The origin directory
      * @param string $targetDir      The target directory
      * @param \Traversable $iterator A Traversable instance
-     * @param array  $options        An array of options (see copy())
+     * @param array  $options        An array of boolean options
+     *                               Valid options are:
+     *                                 - $options['override'] Whether to override an existing file on copy or not (see copy())
+     *                                 - $options['copy_on_windows'] Whether to copy files instead of links on Windows (see symlink())
      *
      * @throws \RuntimeException When file type is unknown
      */
     public function mirror($originDir, $targetDir, \Traversable $iterator = null, $options = array())
     {
+        $copyOnWindows = false;
+        if (isset($options['copy_on_windows']) && !function_exists('symlink')) {
+            $copyOnWindows = $options['copy_on_windows'];
+        }
+
         if (null === $iterator) {
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($originDir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST);
+            $flags = $copyOnWindows ? \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS : \FilesystemIterator::SKIP_DOTS;
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($originDir, $flags), \RecursiveIteratorIterator::SELF_FIRST);
         }
 
         if ('/' === substr($targetDir, -1) || '\\' === substr($targetDir, -1)) {
@@ -198,14 +206,35 @@ class Filesystem
 
             if (is_dir($file)) {
                 $this->mkdir($target);
-            } else if (is_file($file)) {
-                $this->copy($file, $target, $options);
+            } else if (is_file($file) || ($copyOnWindows && is_link($file))) {
+                $this->copy($file, $target, isset($options['override']) ? $options['override'] : false);
             } else if (is_link($file)) {
                 $this->symlink($file, $target);
             } else {
                 throw new \RuntimeException(sprintf('Unable to guess "%s" file type.', $file));
             }
         }
+    }
+
+    /**
+     * Returns whether the file path is an absolute path.
+     *
+     * @param string $file A file path
+     *
+     * @return Boolean
+     */
+    public function isAbsolutePath($file)
+    {
+        if ($file[0] == '/' || $file[0] == '\\'
+            || (strlen($file) > 3 && ctype_alpha($file[0])
+                && $file[1] == ':'
+                && ($file[2] == '\\' || $file[2] == '/')
+            )
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     private function toIterator($files)

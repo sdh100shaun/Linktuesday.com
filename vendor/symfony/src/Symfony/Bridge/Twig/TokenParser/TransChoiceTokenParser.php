@@ -14,7 +14,7 @@ namespace Symfony\Bridge\Twig\TokenParser;
 use Symfony\Bridge\Twig\Node\TransNode;
 
 /**
- * 
+ *
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
@@ -37,6 +37,7 @@ class TransChoiceTokenParser extends TransTokenParser
         $count = $this->parser->getExpressionParser()->parseExpression();
 
         $domain = new \Twig_Node_Expression_Constant('messages', $lineno);
+        $locale = null;
 
         if ($stream->test('with')) {
             // {% transchoice count with vars %}
@@ -50,17 +51,23 @@ class TransChoiceTokenParser extends TransTokenParser
             $domain = $this->parser->getExpressionParser()->parseExpression();
         }
 
+        if ($stream->test('into')) {
+            // {% transchoice count into "fr" %}
+            $stream->next();
+            $locale =  $this->parser->getExpressionParser()->parseExpression();
+        }
+
         $stream->expect(\Twig_Token::BLOCK_END_TYPE);
 
         $body = $this->parser->subparse(array($this, 'decideTransChoiceFork'), true);
 
         if (!$body instanceof \Twig_Node_Text && !$body instanceof \Twig_Node_Expression) {
-            throw new \Twig_Error_Syntax(sprintf('A message must be a simple text (line %s)', $lineno), -1);
+            throw new \Twig_Error_Syntax('A message must be a simple text.');
         }
 
         $stream->expect(\Twig_Token::BLOCK_END_TYPE);
 
-        return new TransNode($body, $domain, $count, $vars, $lineno, $this->getTag());
+        return new TransNode($body, $domain, $count, $vars, $locale, $lineno, $this->getTag());
     }
 
     public function decideTransChoiceFork($token)
@@ -71,7 +78,7 @@ class TransChoiceTokenParser extends TransTokenParser
     /**
      * Gets the tag name associated with this token parser.
      *
-     * @param string The tag name
+     * @return string The tag name
      */
     public function getTag()
     {

@@ -17,6 +17,8 @@ use Symfony\Component\Routing\Route;
  * PhpGeneratorDumper creates a PHP class able to generate URLs for a given set of routes.
  *
  * @author Fabien Potencier <fabien@symfony.com>
+ *
+ * @api
  */
 class PhpGeneratorDumper extends GeneratorDumper
 {
@@ -31,6 +33,8 @@ class PhpGeneratorDumper extends GeneratorDumper
      * @param  array  $options An array of options
      *
      * @return string A PHP class representing the generator class
+     *
+     * @api
      */
     public function dump(array $options = array())
     {
@@ -54,10 +58,7 @@ class PhpGeneratorDumper extends GeneratorDumper
             $compiledRoute = $route->compile();
 
             $variables = str_replace("\n", '', var_export($compiledRoute->getVariables(), true));
-            $defaultsMerge = '';
-            foreach ($compiledRoute->getDefaults() as $key => $value) {
-                $defaultsMerge .= '        $defaults[\''.$key.'\'] = '.str_replace("\n", '', var_export($value, true)).';'."\n";
-            }
+            $defaults = str_replace("\n", '', var_export($compiledRoute->getDefaults(), true));
             $requirements = str_replace("\n", '', var_export($compiledRoute->getRequirements(), true));
             $tokens = str_replace("\n", '', var_export($compiledRoute->getTokens(), true));
 
@@ -66,9 +67,7 @@ class PhpGeneratorDumper extends GeneratorDumper
             $methods[] = <<<EOF
     private function get{$escapedName}RouteInfo()
     {
-        \$defaults = \$this->defaults;
-$defaultsMerge
-        return array($variables, \$defaults, $requirements, $tokens);
+        return array($variables, $defaults, $requirements, $tokens);
     }
 
 EOF
@@ -79,10 +78,10 @@ EOF
 
         return <<<EOF
 
-    public function generate(\$name, array \$parameters = array(), \$absolute = false)
+    public function generate(\$name, \$parameters = array(), \$absolute = false)
     {
         if (!isset(self::\$declaredRouteNames[\$name])) {
-            throw new \InvalidArgumentException(sprintf('Route "%s" does not exist.', \$name));
+            throw new RouteNotFoundException(sprintf('Route "%s" does not exist.', \$name));
         }
 
         \$escapedName = str_replace('.', '__', \$name);
@@ -107,6 +106,10 @@ EOF;
         return <<<EOF
 <?php
 
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
+
+
 /**
  * $class
  *
@@ -129,10 +132,9 @@ EOF;
     /**
      * Constructor.
      */
-    public function __construct(array \$context = array(), array \$defaults = array())
+    public function __construct(RequestContext \$context)
     {
         \$this->context = \$context;
-        \$this->defaults = \$defaults;
     }
 
 EOF;

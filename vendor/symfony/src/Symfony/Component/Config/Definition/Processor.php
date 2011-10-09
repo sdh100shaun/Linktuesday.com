@@ -23,7 +23,7 @@ class Processor
      *
      * @param NodeInterface $configTree The node tree describing the configuration
      * @param array         $configs    An array of configuration items to process
-     * 
+     *
      * @return array The processed configuration
      */
     public function process(NodeInterface $configTree, array $configs)
@@ -65,7 +65,7 @@ class Processor
      *
      * @return array the config with normalized keys
      */
-    public static function normalizeKeys(array $config)
+    static public function normalizeKeys(array $config)
     {
         foreach ($config as $key => $value) {
             if (is_array($value)) {
@@ -104,7 +104,7 @@ class Processor
      *
      * @return array
      */
-    public static function normalizeConfig($config, $key, $plural = null)
+    static public function normalizeConfig($config, $key, $plural = null)
     {
         if (null === $plural) {
             $plural = $key.'s';

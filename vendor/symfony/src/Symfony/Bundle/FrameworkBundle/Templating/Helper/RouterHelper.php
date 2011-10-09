@@ -36,13 +36,13 @@ class RouterHelper extends Helper
     /**
      * Generates a URL from the given parameters.
      *
-     * @param  string  $name       The name of the route
-     * @param  array   $parameters An array of parameters
-     * @param  Boolean $absolute   Whether to generate an absolute URL
+     * @param string  $name       The name of the route
+     * @param mixed   $parameters An array of parameters
+     * @param Boolean $absolute   Whether to generate an absolute URL
      *
      * @return string The generated URL
      */
-    public function generate($name, array $parameters = array(), $absolute = false)
+    public function generate($name, $parameters = array(), $absolute = false)
     {
         return $this->generator->generate($name, $parameters, $absolute);
     }

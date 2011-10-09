@@ -12,6 +12,7 @@
 namespace Symfony\Component\Locale\Stub\DateFormat;
 
 use Symfony\Component\Locale\Exception\NotImplementedException;
+use Symfony\Component\Locale\Stub\StubIntl;
 use Symfony\Component\Locale\Stub\DateFormat\MonthTransformer;
 
 /**
@@ -110,6 +111,7 @@ class FullTransformer
 
         if (isset($this->transformers[$dateChars[0]])) {
             $transformer = $this->transformers[$dateChars[0]];
+
             return $transformer->format($dateTime, $length);
         } else {
             // handle unimplemented characters
@@ -177,7 +179,8 @@ class FullTransformer
             if (isset($transformers[$transformerIndex])) {
                 $transformer = $transformers[$transformerIndex];
                 $captureName = str_repeat($transformerIndex, $length);
-                return "(?P<$captureName>" . $transformer->getReverseMatchingRegExp($length) . ')';
+
+                return "(?P<$captureName>".$transformer->getReverseMatchingRegExp($length).')';
             }
         }, $escapedPattern);
 
@@ -188,7 +191,7 @@ class FullTransformer
      * Check if the first char of a string is a single quote
      *
      * @param  string  $quoteMatch  The string to check
-     * @return bool                 true if matches, false otherwise
+     * @return Boolean              true if matches, false otherwise
      */
     public function isQuoteMatch($quoteMatch)
     {
@@ -206,6 +209,7 @@ class FullTransformer
         if (preg_match("/^'+$/", $quoteMatch)) {
             return str_replace("''", "'", $quoteMatch);
         }
+
         return str_replace("''", "'", substr($quoteMatch, 1, -1));
     }
 
@@ -220,7 +224,7 @@ class FullTransformer
         $specialCharsArray = str_split($specialChars);
 
         $specialCharsMatch = implode('|', array_map(function($char) {
-            return $char . '+';
+            return $char.'+';
         }, $specialCharsArray));
 
         return $specialCharsMatch;
@@ -255,9 +259,9 @@ class FullTransformer
      * Calculates the Unix timestamp based on the matched values by the reverse matching regular
      * expression of parse()
      *
-     * @param  DateTime  $dateTime  The DateTime object to be used to calculate the timestamp
-     * @param  array     $options   An array with the matched values to be used to calculate the timestamp
-     * @return bool|int             The calculated timestamp or false if matched date is invalid
+     * @param  DateTime $dateTime The DateTime object to be used to calculate the timestamp
+     * @param  array    $options  An array with the matched values to be used to calculate the timestamp
+     * @return Boolean|int        The calculated timestamp or false if matched date is invalid
      */
     protected function calculateUnixTimestamp(\DateTime $dateTime, array $options)
     {
@@ -275,6 +279,8 @@ class FullTransformer
 
         // If month is false, return immediately (intl behavior)
         if (false === $month) {
+            StubIntl::setErrorCode(StubIntl::U_PARSE_ERROR);
+
             return false;
         }
 
@@ -288,6 +294,13 @@ class FullTransformer
             $dateTime->setTimezone(new \DateTimeZone($timezone));
         }
 
+        // Normalize yy year
+        preg_match_all($this->regExp, $this->pattern, $matches);
+        if (in_array('yy', $matches[0])) {
+            $dateTime->setTimestamp(time());
+            $year = $year > $dateTime->format('y') + 20 ? 1900 + $year : 2000 + $year;
+        }
+
         $dateTime->setDate($year, $month, $day);
         $dateTime->setTime($hour, $minute, $second);
 
@@ -296,7 +309,7 @@ class FullTransformer
 
     /**
      * Add sensible default values for missing items in the extracted date/time options array. The values
-     * are base in the beggining of the Unix era
+     * are base in the beginning of the Unix era
      *
      * @param  array  $options
      * @return array

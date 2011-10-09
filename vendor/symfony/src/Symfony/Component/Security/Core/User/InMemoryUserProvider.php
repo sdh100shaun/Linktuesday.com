@@ -33,7 +33,6 @@ class InMemoryUserProvider implements UserProviderInterface
      * an array of attributes: 'password', 'enabled', and 'roles'.
      *
      * @param array $users An array of users
-     * @param string $name
      */
     public function __construct(array $users = array())
     {
@@ -79,7 +78,7 @@ class InMemoryUserProvider implements UserProviderInterface
     /**
      * {@inheritDoc}
      */
-    public function loadUser(UserInterface $user)
+    public function refreshUser(UserInterface $user)
     {
         if (!$user instanceof User) {
             throw new UnsupportedUserException(sprintf('Instances of "%s" are not supported.', get_class($user)));

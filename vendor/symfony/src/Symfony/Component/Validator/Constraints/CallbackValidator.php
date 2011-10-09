@@ -20,9 +20,21 @@ use Symfony\Component\Validator\Exception\ConstraintDefinitionException;
  * Validator for Callback constraint
  *
  * @author Bernhard Schussek <bernhard.schussek@symfony.com>
+ *
+ * @api
  */
 class CallbackValidator extends ConstraintValidator
 {
+    /**
+     * Checks if the passed value is valid.
+     *
+     * @param mixed      $value      The value that should be validated
+     * @param Constraint $constraint The constraint for the validation
+     *
+     * @return Boolean Whether or not the value is valid
+     *
+     * @api
+     */
     public function isValid($object, Constraint $constraint)
     {
         if (null === $object) {
@@ -45,7 +57,7 @@ class CallbackValidator extends ConstraintValidator
         $propertyPath = $context->getPropertyPath();
 
         foreach ($methods as $method) {
-            if (is_array($method)) {
+            if (is_array($method) || $method instanceof \Closure) {
                 if (!is_callable($method)) {
                     throw new ConstraintDefinitionException(sprintf('"%s::%s" targeted by Callback constraint is not a valid callable', $method[0], $method[1]));
                 }

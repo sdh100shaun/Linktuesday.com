@@ -104,8 +104,31 @@ abstract class Client
     {
         $this->server = array_merge(array(
             'HTTP_HOST'       => 'localhost',
-            'HTTP_USER_AGENT' => 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3',
+            'HTTP_USER_AGENT' => 'Symfony2 BrowserKit',
         ), $server);
+    }
+
+    /**
+     * Sets single server parameter.
+     *
+     * @param string $key   A key of the parameter
+     * @param string $value A value of the parameter
+     */
+    public function setServerParameter($key, $value)
+    {
+        $this->server[$key] = $value;
+    }
+
+    /**
+     * Gets single server parameter for specified key.
+     *
+     * @param string $key     A key of the parameter to get
+     * @param string $default A default value when key is undefined
+     * @return string A value of the parameter
+     */
+    public function getServerParameter($key, $default = '')
+    {
+        return (isset($this->server[$key])) ? $this->server[$key] : $default;
     }
 
     /**
@@ -177,6 +200,10 @@ abstract class Client
      */
     public function click(Link $link)
     {
+        if ($link instanceof Form) {
+            return $this->submit($link);
+        }
+
         return $this->request($link->getMethod(), $link->getUri());
     }
 
@@ -259,10 +286,11 @@ abstract class Client
      */
     protected function doRequestInProcess($request)
     {
-        $process = new PhpProcess($this->getScript($request));
+        // We set the TMPDIR (for Macs) and TEMP (for Windows), because on these platforms the temp directory changes based on the user.
+        $process = new PhpProcess($this->getScript($request), null, array('TMPDIR' => sys_get_temp_dir(), 'TEMP' => sys_get_temp_dir()));
         $process->run();
 
-        if (!$process->isSuccessful()) {
+        if (!$process->isSuccessful() || !preg_match('/^O\:\d+\:/', $process->getOutput())) {
             throw new \RuntimeException($process->getErrorOutput());
         }
 
@@ -390,7 +418,7 @@ abstract class Client
     /**
      * Restarts the client.
      *
-     * It flushes all cookies.
+     * It flushes history and all cookies.
      *
      * @api
      */

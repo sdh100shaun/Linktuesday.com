@@ -14,7 +14,6 @@ namespace Symfony\Component\DependencyInjection\Loader;
 use Symfony\Component\DependencyInjection\DefinitionDecorator;
 use Symfony\Component\DependencyInjection\Alias;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\DependencyInjection\InterfaceInjector;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -33,8 +32,8 @@ class YamlFileLoader extends FileLoader
     /**
      * Loads a Yaml file.
      *
-     * @param mixed $resource The resource
-     * @param string $type    The resource type
+     * @param mixed  $file The resource
+     * @param string $type The resource type
      */
     public function load($file, $type = null)
     {
@@ -61,9 +60,6 @@ class YamlFileLoader extends FileLoader
 
         // extensions
         $this->loadFromExtensions($content);
-
-        // interface injectors
-        $this->parseInterfaceInjectors($content, $file);
 
         // services
         $this->parseDefinitions($content, $file);
@@ -99,43 +95,6 @@ class YamlFileLoader extends FileLoader
             $this->setCurrentDir(dirname($file));
             $this->import($import['resource'], null, isset($import['ignore_errors']) ? (Boolean) $import['ignore_errors'] : false, $file);
         }
-    }
-
-    /**
-     * Parses interface injectors.
-     *
-     * @param array $content
-     * @param string $file
-     * @return void
-     */
-    private function parseInterfaceInjectors($content, $file)
-    {
-        if (!isset($content['interfaces'])) {
-            return;
-        }
-
-        foreach ($content['interfaces'] as $class => $interface) {
-            $this->parseInterfaceInjector($class, $interface, $file);
-        }
-    }
-
-    /**
-     * Parses an interface injector.
-     *
-     * @param string $class
-     * @param array $interface
-     * @param string $file
-     * @return void
-     */
-    private function parseInterfaceInjector($class, $interface, $file)
-    {
-        $injector = new InterfaceInjector($class);
-        if (isset($interface['calls'])) {
-            foreach ($interface['calls'] as $call) {
-                $injector->addMethodCall($call[0], $this->resolveServices($call[1]));
-            }
-        }
-        $this->container->addInterfaceInjector($injector);
     }
 
     /**
@@ -248,7 +207,7 @@ class YamlFileLoader extends FileLoader
 
             foreach ($service['tags'] as $tag) {
                 if (!isset($tag['name'])) {
-                    throw new \InvalidArgumentException(sprintf('A "tags" entry is missing a "name" key must be an array for service "%s" in %s.', $id, $file));
+                    throw new \InvalidArgumentException(sprintf('A "tags" entry is missing a "name" key for service "%s" in %s.', $id, $file));
                 }
 
                 $name = $tag['name'];
@@ -269,7 +228,7 @@ class YamlFileLoader extends FileLoader
      */
     private function loadFile($file)
     {
-        return $this->validate(Yaml::load($file), $file);
+        return $this->validate(Yaml::parse($file), $file);
     }
 
     /**
@@ -292,12 +251,19 @@ class YamlFileLoader extends FileLoader
         }
 
         foreach (array_keys($content) as $namespace) {
-            if (in_array($namespace, array('imports', 'parameters', 'services', 'interfaces'))) {
+            if (in_array($namespace, array('imports', 'parameters', 'services'))) {
                 continue;
             }
 
             if (!$this->container->hasExtension($namespace)) {
-                throw new \InvalidArgumentException(sprintf('There is no extension able to load the configuration for "%s" (in %s).', $namespace, $file));
+                $extensionNamespaces = array_filter(array_map(function ($ext) { return $ext->getAlias(); }, $this->container->getExtensions()));
+                throw new \InvalidArgumentException(sprintf(
+                    'There is no extension able to load the configuration for "%s" (in %s). Looked for namespace "%s", found %s',
+                    $namespace,
+                    $file,
+                    $namespace,
+                    $extensionNamespaces ? sprintf('"%s"', implode('", "', $extensionNamespaces)) : 'none'
+                ));
             }
         }
 
@@ -308,7 +274,7 @@ class YamlFileLoader extends FileLoader
      * Resolves services.
      *
      * @param string $value
-     * @return void
+     * @return Reference
      */
     private function resolveServices($value)
     {
@@ -345,7 +311,7 @@ class YamlFileLoader extends FileLoader
     private function loadFromExtensions($content)
     {
         foreach ($content as $namespace => $values) {
-            if (in_array($namespace, array('imports', 'parameters', 'services', 'interfaces'))) {
+            if (in_array($namespace, array('imports', 'parameters', 'services'))) {
                 continue;
             }
 

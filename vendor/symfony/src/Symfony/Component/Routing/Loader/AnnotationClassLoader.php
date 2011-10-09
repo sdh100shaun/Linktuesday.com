@@ -11,7 +11,7 @@
 
 namespace Symfony\Component\Routing\Loader;
 
-use Doctrine\Common\Annotations\AnnotationReader;
+use Doctrine\Common\Annotations\Reader;
 use Symfony\Component\Routing\Annotation\Route as RouteAnnotation;
 use Symfony\Component\Config\Resource\FileResource;
 use Symfony\Component\Routing\Route;
@@ -59,14 +59,14 @@ abstract class AnnotationClassLoader implements LoaderInterface
 {
     protected $reader;
     protected $routeAnnotationClass  = 'Symfony\\Component\\Routing\\Annotation\\Route';
-    protected $routesAnnotationClass = 'Symfony\\Component\\Routing\\Annotation\\Routes';
+    protected $defaultRouteIndex;
 
     /**
      * Constructor.
      *
-     * @param AnnotationReader $reader
+     * @param Reader $reader
      */
-    public function __construct(AnnotationReader $reader)
+    public function __construct(Reader $reader)
     {
         $this->reader = $reader;
     }
@@ -79,16 +79,6 @@ abstract class AnnotationClassLoader implements LoaderInterface
     public function setRouteAnnotationClass($class)
     {
         $this->routeAnnotationClass = $class;
-    }
-
-    /**
-     * Sets the annotation class to read routes properties from.
-     *
-     * @param string $class A fully-qualified class name
-     */
-    public function setRoutesAnnotationClass($class)
-    {
-        $this->routesAnnotationClass = $class;
     }
 
     /**
@@ -115,6 +105,10 @@ abstract class AnnotationClassLoader implements LoaderInterface
         );
 
         $class = new \ReflectionClass($class);
+        if ($class->isAbstract()) {
+            throw new \InvalidArgumentException(sprintf('Annotations from class "%s" cannot be read as it is abstract.', $class));
+        }
+
         if ($annot = $this->reader->getClassAnnotation($class, $this->routeAnnotationClass)) {
             if (null !== $annot->getPattern()) {
                 $globals['pattern'] = $annot->getPattern();
@@ -137,22 +131,22 @@ abstract class AnnotationClassLoader implements LoaderInterface
         $collection->addResource(new FileResource($class->getFileName()));
 
         foreach ($class->getMethods() as $method) {
-            if ($annots = $this->reader->getMethodAnnotation($method, $this->routesAnnotationClass)) {
-                foreach ($annots->getRoutes() as $annot) {
-                    $this->addRoute($collection, $annot, $globals, $annot, $class, $method);
+            $this->defaultRouteIndex = 0;
+            foreach ($this->reader->getMethodAnnotations($method) as $annot) {
+                if ($annot instanceof $this->routeAnnotationClass) {
+                    $this->addRoute($collection, $annot, $globals, $class, $method);
                 }
-            } elseif ($annot = $this->reader->getMethodAnnotation($method, $this->routeAnnotationClass)) {
-                $this->addRoute($collection, $annot, $globals, $annot, $class, $method);
             }
         }
 
         return $collection;
     }
 
-    protected function addRoute(RouteCollection $collection, $annot, $globals, $annot, \ReflectionClass $class, \ReflectionMethod $method)
+    protected function addRoute(RouteCollection $collection, $annot, $globals, \ReflectionClass $class, \ReflectionMethod $method)
     {
-        if (null === $annot->getName()) {
-            $annot->setName($this->getDefaultRouteName($class, $method));
+        $name = $annot->getName();
+        if (null === $name) {
+            $name = $this->getDefaultRouteName($class, $method);
         }
 
         $defaults = array_merge($globals['defaults'], $annot->getDefaults());
@@ -163,7 +157,7 @@ abstract class AnnotationClassLoader implements LoaderInterface
 
         $this->configureRoute($route, $class, $method, $annot);
 
-        $collection->add($annot->getName(), $route);
+        $collection->add($name, $route);
     }
 
     /**
@@ -207,7 +201,13 @@ abstract class AnnotationClassLoader implements LoaderInterface
      */
     protected function getDefaultRouteName(\ReflectionClass $class, \ReflectionMethod $method)
     {
-        return strtolower(str_replace('\\', '_', $class->getName()).'_'.$method->getName());
+        $name = strtolower(str_replace('\\', '_', $class->getName()).'_'.$method->getName());
+        if ($this->defaultRouteIndex > 0) {
+            $name .= '_'.$this->defaultRouteIndex;
+        }
+        $this->defaultRouteIndex++;
+
+        return $name;
     }
 
     abstract protected function configureRoute(Route $route, \ReflectionClass $class, \ReflectionMethod $method, $annot);

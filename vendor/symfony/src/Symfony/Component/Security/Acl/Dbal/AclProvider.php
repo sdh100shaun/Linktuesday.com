@@ -46,12 +46,12 @@ class AclProvider implements AclProviderInterface
     private $permissionGrantingStrategy;
 
     /**
-     * Constructor
+     * Constructor.
      *
-     * @param Connection $connection
+     * @param Connection                          $connection
      * @param PermissionGrantingStrategyInterface $permissionGrantingStrategy
-     * @param array $options
-     * @param AclCacheInterface $cache
+     * @param array                               $options
+     * @param AclCacheInterface                   $cache
      */
     public function __construct(Connection $connection, PermissionGrantingStrategyInterface $permissionGrantingStrategy, array $options, AclCacheInterface $cache = null)
     {
@@ -251,9 +251,10 @@ SELECTCLAUSE;
     {
         $sql = <<<SELECTCLAUSE
             SELECT a.ancestor_id
-            FROM acl_object_identities o
-            INNER JOIN acl_classes c ON c.id = o.class_id
-            INNER JOIN acl_object_identity_ancestors a ON a.object_identity_id = o.id
+            FROM
+                {$this->options['oid_table_name']} o
+            INNER JOIN {$this->options['class_table_name']} c ON c.id = o.class_id
+            INNER JOIN {$this->options['oid_ancestors_table_name']} a ON a.object_identity_id = o.id
                WHERE (
 SELECTCLAUSE;
 
@@ -280,7 +281,7 @@ SELECTCLAUSE;
      * object identities.
      *
      * @param ObjectIdentityInterface $oid
-     * @param Boolean $directChildrenOnly
+     * @param Boolean                 $directChildrenOnly
      * @return string
      */
     protected function getFindChildrenSql(ObjectIdentityInterface $oid, $directChildrenOnly)
@@ -441,8 +442,8 @@ QUERY;
      * performance of the entire ACL system.
      *
      * @param Statement $stmt
-     * @param array $oidLookup
-     * @param array $sids
+     * @param array     $oidLookup
+     * @param array     $sids
      * @throws \RuntimeException
      * @return \SplObjectStorage
      */

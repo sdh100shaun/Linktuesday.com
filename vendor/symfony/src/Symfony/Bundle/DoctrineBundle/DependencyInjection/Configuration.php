@@ -30,13 +30,13 @@ class Configuration implements ConfigurationInterface
     /**
      * Constructor
      *
-     * @param Boolean $debug Wether to use the debug mode
+     * @param Boolean $debug Whether to use the debug mode
      */
     public function  __construct($debug)
     {
         $this->debug = (Boolean) $debug;
     }
-    
+
     /**
      * Generates the configuration tree builder.
      *
@@ -59,9 +59,37 @@ class Configuration implements ConfigurationInterface
             ->children()
             ->arrayNode('dbal')
                 ->beforeNormalization()
-                    ->ifNull()
-                    // Define a default connection using the default values
-                    ->then(function($v) { return array ('connections' => array('default' => array())); })
+                    ->ifTrue(function ($v) { return is_array($v) && !array_key_exists('connections', $v) && !array_key_exists('connection', $v); })
+                    ->then(function ($v) {
+                        $connection = array();
+                        foreach (array(
+                            'dbname',
+                            'host',
+                            'port',
+                            'user',
+                            'password',
+                            'driver',
+                            'driver_class',
+                            'options',
+                            'path',
+                            'memory',
+                            'unix_socket',
+                            'wrapper_class',
+                            'platform_service',
+                            'charset',
+                            'logging',
+                            'mapping_types',
+                        ) as $key) {
+                            if (array_key_exists($key, $v)) {
+                                $connection[$key] = $v[$key];
+                                unset($v[$key]);
+                            }
+                        }
+                        $v['default_connection'] = isset($v['default_connection']) ? (string) $v['default_connection'] : 'default';
+                        $v['connections'] = array($v['default_connection'] => $connection);
+
+                        return $v;
+                    })
                 ->end()
                 ->children()
                     ->scalarNode('default_connection')->end()
@@ -70,12 +98,7 @@ class Configuration implements ConfigurationInterface
                 ->children()
                     ->arrayNode('types')
                         ->useAttributeAsKey('name')
-                        ->prototype('scalar')
-                            ->beforeNormalization()
-                                ->ifTrue(function($v) { return is_array($v) && isset($v['class']); })
-                                ->then(function($v) { return $v['class']; })
-                            ->end()
-                        ->end()
+                        ->prototype('scalar')->end()
                     ->end()
                 ->end()
                 ->fixXmlConfig('connection')
@@ -93,6 +116,7 @@ class Configuration implements ConfigurationInterface
             ->requiresAtLeastOneElement()
             ->useAttributeAsKey('name')
             ->prototype('array')
+                ->fixXmlConfig('mapping_type')
                 ->children()
                     ->scalarNode('dbname')->end()
                     ->scalarNode('host')->defaultValue('localhost')->end()
@@ -106,21 +130,16 @@ class Configuration implements ConfigurationInterface
                     ->scalarNode('platform_service')->end()
                     ->scalarNode('charset')->end()
                     ->booleanNode('logging')->defaultValue($this->debug)->end()
-                ->end()
-                ->fixXmlConfig('driver_class', 'driverClass')
-                ->children()
-                    ->scalarNode('driverClass')->end()
-                ->end()
-                ->fixXmlConfig('options', 'driverOptions')
-                ->children()
-                    ->arrayNode('driverOptions')
+                    ->scalarNode('driver_class')->end()
+                    ->scalarNode('wrapper_class')->end()
+                    ->arrayNode('options')
                         ->useAttributeAsKey('key')
                         ->prototype('scalar')->end()
                     ->end()
-                ->end()
-                ->fixXmlConfig('wrapper_class', 'wrapperClass')
-                ->children()
-                    ->scalarNode('wrapperClass')->end()
+                    ->arrayNode('mapping_types')
+                        ->useAttributeAsKey('name')
+                        ->prototype('scalar')->end()
+                    ->end()
                 ->end()
             ->end()
         ;
@@ -132,7 +151,31 @@ class Configuration implements ConfigurationInterface
     {
         $node
             ->children()
-                ->arrayNode('orm')                    
+                ->arrayNode('orm')
+                    ->beforeNormalization()
+                        ->ifTrue(function ($v) { return null === $v || (is_array($v) && !array_key_exists('entity_managers', $v) && !array_key_exists('entity_manager', $v)); })
+                        ->then(function ($v) {
+                            $v = (array) $v;
+                            $entityManager = array();
+                            foreach (array(
+                                'result_cache_driver', 'result-cache-driver',
+                                'metadata_cache_driver', 'metadata-cache-driver',
+                                'query_cache_driver', 'query-cache-driver',
+                                'auto_mapping', 'auto-mapping',
+                                'mappings', 'mapping',
+                                'connection', 'dql'
+                            ) as $key) {
+                                if (array_key_exists($key, $v)) {
+                                    $entityManager[$key] = $v[$key];
+                                    unset($v[$key]);
+                                }
+                            }
+                            $v['default_entity_manager'] = isset($v['default_entity_manager']) ? (string) $v['default_entity_manager'] : 'default';
+                            $v['entity_managers'] = array($v['default_entity_manager'] => $entityManager);
+
+                            return $v;
+                        })
+                    ->end()
                     ->children()
                         ->scalarNode('default_entity_manager')->end()
                         ->booleanNode('auto_generate_proxy_classes')->defaultFalse()->end()
@@ -161,34 +204,30 @@ class Configuration implements ConfigurationInterface
                 ->append($this->getOrmCacheDriverNode('result_cache_driver'))
                 ->children()
                     ->scalarNode('connection')->end()
-                    ->scalarNode('class_metadata_factory_name')->defaultValue('%doctrine.orm.class_metadata_factory_name%')->end()
+                    ->scalarNode('class_metadata_factory_name')->defaultValue('Doctrine\ORM\Mapping\ClassMetadataFactory')->end()
+                    ->scalarNode('auto_mapping')->defaultFalse()->end()
                 ->end()
                 ->fixXmlConfig('hydrator')
                 ->children()
                     ->arrayNode('hydrators')
                         ->useAttributeAsKey('name')
-                        ->prototype('scalar')
-                            ->beforeNormalization()
-                                ->ifTrue(function($v) { return is_array($v) && isset($v['class']); })
-                                ->then(function($v) { return $v['class']; })
-                            ->end()
-                        ->end()
+                        ->prototype('scalar')->end()
                     ->end()
                 ->end()
                 ->fixXmlConfig('mapping')
                 ->children()
                     ->arrayNode('mappings')
-                        ->isRequired()
-                        ->requiresAtLeastOneElement()
                         ->useAttributeAsKey('name')
                         ->prototype('array')
                             ->beforeNormalization()
                                 ->ifString()
-                                ->then(function($v) { return array ('type' => $v); })
+                                ->then(function($v) { return array('type' => $v); })
                             ->end()
-                            ->treatNullLike(array ())
+                            ->treatNullLike(array())
+                            ->treatFalseLike(array('mapping' => false))
                             ->performNoDeepMerging()
                             ->children()
+                                ->scalarNode('mapping')->defaultValue(true)->end()
                                 ->scalarNode('type')->end()
                                 ->scalarNode('dir')->end()
                                 ->scalarNode('alias')->end()
@@ -204,30 +243,15 @@ class Configuration implements ConfigurationInterface
                         ->children()
                             ->arrayNode('string_functions')
                                 ->useAttributeAsKey('name')
-                                ->prototype('scalar')
-                                    ->beforeNormalization()
-                                        ->ifTrue(function($v) { return is_array($v) && isset($v['class']); })
-                                        ->then(function($v) { return $v['class']; })
-                                    ->end()
-                                ->end()
+                                ->prototype('scalar')->end()
                             ->end()
                             ->arrayNode('numeric_functions')
                                 ->useAttributeAsKey('name')
-                                ->prototype('scalar')
-                                    ->beforeNormalization()
-                                        ->ifTrue(function($v) { return is_array($v) && isset($v['class']); })
-                                        ->then(function($v) { return $v['class']; })
-                                    ->end()
-                                ->end()
+                                ->prototype('scalar')->end()
                             ->end()
                             ->arrayNode('datetime_functions')
                                 ->useAttributeAsKey('name')
-                                ->prototype('scalar')
-                                    ->beforeNormalization()
-                                        ->ifTrue(function($v) { return is_array($v) && isset($v['class']); })
-                                        ->then(function($v) { return $v['class']; })
-                                    ->end()
-                                ->end()
+                                ->prototype('scalar')->end()
                             ->end()
                         ->end()
                     ->end()
@@ -247,7 +271,7 @@ class Configuration implements ConfigurationInterface
             ->addDefaultsIfNotSet()
             ->beforeNormalization()
                 ->ifString()
-                ->then(function($v) { return array ('type' => $v); })
+                ->then(function($v) { return array('type' => $v); })
             ->end()
             ->children()
                 ->scalarNode('type')->defaultValue('array')->isRequired()->end()

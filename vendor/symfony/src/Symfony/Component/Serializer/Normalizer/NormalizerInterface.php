@@ -14,7 +14,7 @@ use Symfony\Component\Serializer\SerializerInterface;
  */
 
 /**
- * Defines the interface of serializers
+ * Defines the interface of normalizers.
  *
  * @author Jordi Boggiano <j.boggiano@seld.be>
  */
@@ -25,11 +25,9 @@ interface NormalizerInterface
      *
      * @param object $object object to normalize
      * @param string $format format the normalization result will be encoded as
-     * @param array $properties a list of properties to extract, if null all properties are returned
      * @return array|scalar
-     * @api
      */
-    function normalize($object, $format, $properties = null);
+    function normalize($object, $format = null);
 
     /**
      * Denormalizes data back into an object of the given class
@@ -38,33 +36,25 @@ interface NormalizerInterface
      * @param string $class the expected class to instantiate
      * @param string $format format the given data was extracted from
      * @return object
-     * @api
      */
     function denormalize($data, $class, $format = null);
 
     /**
-     * Checks whether the given class is supported by this normalizer
+     * Checks whether the given class is supported for normalization by this normalizer
      *
-     * @param ReflectionClass $class
-     * @param string $format format the given data was extracted from
+     * @param mixed   $data   Data to normalize.
+     * @param string  $format The format being (de-)serialized from or into.
      * @return Boolean
-     * @api
      */
-    function supports(\ReflectionClass $class, $format = null);
+    function supportsNormalization($data, $format = null);
 
     /**
-     * Sets the owning Serializer object
+     * Checks whether the given class is supported for denormalization by this normalizer
      *
-     * @param SerializerInterface $serializer
-     * @api
+     * @param mixed   $data   Data to denormalize from.
+     * @param string  $type   The class to which the data should be denormalized.
+     * @param string  $format The format being deserialized from.
+     * @return Boolean
      */
-    function setSerializer(SerializerInterface $serializer);
-
-    /**
-     * Gets the owning Serializer object
-     *
-     * @return SerializerInterface
-     * @api
-     */
-    function getSerializer();
+    function supportsDenormalization($data, $type, $format = null);
 }

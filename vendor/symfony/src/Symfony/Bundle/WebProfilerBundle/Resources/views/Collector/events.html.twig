@@ -33,10 +33,11 @@
                 <th>Event name</th>
                 <th>Listener</th>
             </tr>
-            {% for listener in collector.notcalledlisteners %}
+            {% set listeners = collector.notcalledlisteners %}
+            {% for listener in listeners|keys|sort %}
                 <tr>
-                    <td><code>{{ listener.event }}</code></td>
-                    <td><code>{{ display_listener(listener) }}</code></td>
+                    <td><code>{{ listeners[listener].event }}</code></td>
+                    <td><code>{{ display_listener(listeners[listener]) }}</code></td>
                 </tr>
             {% endfor %}
         </table>
@@ -46,8 +47,11 @@
 {% macro display_listener(listener) %}
     {% if listener.type == "Closure" %}
         Closure
-    {% else %}
+    {% elseif listener.type == "Function" %}
         {% set link = listener.file|file_link(listener.line) %}
-        {{ listener.class|abbr_class }}::{% if link %}<a href="{{ link }}">{{ listener.event }}</a>{% else %}{{ listener.event }}{% endif %}
+        {% if link %}<a href="{{ link }}">{{ listener.function }}</a>{% else %}{{ listener.function }}{% endif %}
+    {% elseif listener.type == "Method" %}
+        {% set link = listener.file|file_link(listener.line) %}
+        {{ listener.class|abbr_class }}::{% if link %}<a href="{{ link }}">{{ listener.method }}</a>{% else %}{{ listener.method }}{% endif %}
     {% endif %}
 {% endmacro %}

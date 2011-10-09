@@ -108,12 +108,15 @@ class Unescaper
                 return $this->convertEncoding("\x20\x29", self::ENCODING, 'UCS-2BE');
             case 'x':
                 $char = pack('n', hexdec(substr($value, 2, 2)));
+
                 return $this->convertEncoding($char, self::ENCODING, 'UCS-2BE');
             case 'u':
                 $char = pack('n', hexdec(substr($value, 2, 4)));
+
                 return $this->convertEncoding($char, self::ENCODING, 'UCS-2BE');
             case 'U':
                 $char = pack('N', hexdec(substr($value, 2, 8)));
+
                 return $this->convertEncoding($char, self::ENCODING, 'UCS-4BE');
         }
     }
@@ -121,9 +124,9 @@ class Unescaper
     /**
      * Convert a string from one encoding to another.
      *
-     * @param string $string The string to convert
-     * @param string $to     The input encoding
-     * @param string $from   The output encoding
+     * @param string $value The string to convert
+     * @param string $to    The input encoding
+     * @param string $from  The output encoding
      *
      * @return string The string with the new encoding
      *

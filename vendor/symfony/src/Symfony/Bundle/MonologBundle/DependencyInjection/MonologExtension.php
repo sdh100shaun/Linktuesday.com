@@ -3,7 +3,7 @@
 /*
  * This file is part of the Symfony package.
  *
- * (c) Fabien Potencier <fabien@symfony.com
+ * (c) Fabien Potencier <fabien@symfony.com>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -15,7 +15,6 @@ use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Config\FileLocator;
-use Symfony\Component\Config\Definition\Processor;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\DependencyInjection\Parameter;
@@ -39,8 +38,7 @@ class MonologExtension extends Extension
     public function load(array $configs, ContainerBuilder $container)
     {
         $configuration = new Configuration();
-        $processor = new Processor();
-        $config = $processor->processConfiguration($configuration, $configs);
+        $config = $this->processConfiguration($configuration, $configs);
 
         if (isset($config['handlers'])) {
             $loader = new XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
@@ -48,10 +46,6 @@ class MonologExtension extends Extension
             $container->setAlias('logger', 'monolog.logger');
 
             $logger = $container->getDefinition('monolog.logger_prototype');
-
-            if (!empty ($config['processors'])) {
-                $this->addProcessors($logger, $config['processors']);
-            }
 
             $handlers = array();
             foreach ($config['handlers'] as $name => $handler) {
@@ -63,6 +57,7 @@ class MonologExtension extends Extension
                 if ($a['priority'] == $b['priority']) {
                     return 0;
                 }
+
                 return $a['priority'] < $b['priority'] ? -1 : 1;
             });
             foreach ($handlers as $handler) {
@@ -70,20 +65,20 @@ class MonologExtension extends Extension
                     $logger->addMethodCall('pushHandler', array(new Reference($handler['id'])));
                 }
             }
-        }
 
-        $this->addClassesToCompile(array(
-            'Monolog\\Formatter\\FormatterInterface',
-            'Monolog\\Formatter\\LineFormatter',
-            'Monolog\\Handler\\HandlerInterface',
-            'Monolog\\Handler\\AbstractHandler',
-            'Monolog\\Handler\\StreamHandler',
-            'Monolog\\Handler\\FingersCrossedHandler',
-            'Monolog\\Handler\\TestHandler',
-            'Monolog\\Logger',
-            'Symfony\\Bundle\\MonologBundle\\Logger\\Logger',
-            'Symfony\\Bundle\\MonologBundle\\Logger\\DebugHandler',
-        ));
+            $this->addClassesToCompile(array(
+                'Monolog\\Formatter\\FormatterInterface',
+                'Monolog\\Formatter\\LineFormatter',
+                'Monolog\\Handler\\HandlerInterface',
+                'Monolog\\Handler\\AbstractHandler',
+                'Monolog\\Handler\\AbstractProcessingHandler',
+                'Monolog\\Handler\\StreamHandler',
+                'Monolog\\Handler\\FingersCrossedHandler',
+                'Monolog\\Logger',
+                'Symfony\\Bridge\\Monolog\\Logger',
+                'Symfony\\Bridge\\Monolog\\Handler\\DebugHandler',
+            ));
+        }
     }
 
     /**
@@ -110,13 +105,10 @@ class MonologExtension extends Extension
         switch ($handler['type']) {
         case 'service':
             $container->setAlias($handlerId, $handler['id']);
+
             return $handlerId;
 
         case 'stream':
-            if (!isset($handler['path'])) {
-                $handler['path'] = '%kernel.logs_dir%/%kernel.environment%.log';
-            }
-
             $definition->setArguments(array(
                 $handler['path'],
                 $handler['level'],
@@ -124,55 +116,64 @@ class MonologExtension extends Extension
             ));
             break;
 
-        case 'rotating_file':
-            if (!isset($handler['path'])) {
-                $handler['path'] = '%kernel.logs_dir%/%kernel.environment%.log';
-            }
+        case 'firephp':
+            $definition->setArguments(array(
+                $handler['level'],
+                $handler['bubble'],
+            ));
+            $definition->addTag('kernel.event_listener', array('event' => 'kernel.response', 'method' => 'onKernelResponse'));
+            break;
 
+        case 'rotating_file':
             $definition->setArguments(array(
                 $handler['path'],
-                isset($handler['max_files']) ? $handler['max_files'] : 0,
+                $handler['max_files'],
                 $handler['level'],
                 $handler['bubble'],
             ));
             break;
 
         case 'fingers_crossed':
-            if (!isset($handler['action_level'])) {
-                $handler['action_level'] = 'WARNING';
-            }
             $handler['action_level'] = is_int($handler['action_level']) ? $handler['action_level'] : constant('Monolog\Logger::'.strtoupper($handler['action_level']));
             $nestedHandlerId = $this->getHandlerId($handler['handler']);
-            array_push($this->nestedHandlers, $nestedHandlerId);
+            $this->nestedHandlers[] = $nestedHandlerId;
 
             $definition->setArguments(array(
                 new Reference($nestedHandlerId),
                 $handler['action_level'],
-                isset($handler['buffer_size']) ? $handler['buffer_size'] : 0,
+                $handler['buffer_size'],
                 $handler['bubble'],
+                $handler['stop_buffering'],
             ));
             break;
 
         case 'buffer':
             $nestedHandlerId = $this->getHandlerId($handler['handler']);
-            array_push($this->nestedHandlers, $nestedHandlerId);
+            $this->nestedHandlers[] = $nestedHandlerId;
 
             $definition->setArguments(array(
                 new Reference($nestedHandlerId),
-                isset($handler['buffer_size']) ? $handler['buffer_size'] : 0,
+                $handler['buffer_size'],
                 $handler['level'],
                 $handler['bubble'],
             ));
             break;
 
-        case 'syslog':
-            if (!isset($handler['ident'])) {
-                $handler['ident'] = false;
-            }
-            if (!isset($handler['facility'])) {
-                $handler['facility'] = 'user';
+        case 'group':
+            $references = array();
+            foreach ($handler['members'] as $nestedHandler) {
+                $nestedHandlerId = $this->getHandlerId($nestedHandler);
+                $this->nestedHandlers[] = $nestedHandlerId;
+                $references[] = new Reference($nestedHandlerId);
             }
 
+            $definition->setArguments(array(
+                $references,
+                $handler['bubble'],
+            ));
+            break;
+
+        case 'syslog':
             $definition->setArguments(array(
                 $handler['ident'],
                 $handler['facility'],
@@ -181,20 +182,59 @@ class MonologExtension extends Extension
             ));
             break;
 
-        default:
-            // Handler using the constructor of AbstractHandler without adding their own arguments
+        case 'swift_mailer':
+            if (isset($handler['email_prototype'])) {
+                if (!empty($handler['email_prototype']['method'])) {
+                    $prototype = array(new Reference($handler['email_prototype']['id']), $handler['email_prototype']['method']);
+                } else {
+                    $prototype = new Reference($handler['email_prototype']['id']);
+                }
+            } else {
+                $message = new Definition('Swift_Message');
+                $message->setFactoryService('mailer');
+                $message->setFactoryMethod('createMessage');
+                $message->setPublic(false);
+                $message->addMethodCall('setFrom', array($handler['from_email']));
+                $message->addMethodCall('setTo', array($handler['to_email']));
+                $message->addMethodCall('setSubject', array($handler['subject']));
+                $messageId = sprintf('%s.mail_prototype', $handlerId);
+                $container->setDefinition($messageId, $message);
+                $prototype = new Reference($messageId);
+            }
+            $definition->setArguments(array(
+                new Reference('mailer'),
+                $prototype,
+                $handler['level'],
+                $handler['bubble'],
+            ));
+            break;
+
+        case 'native_mailer':
+            $definition->setArguments(array(
+                $handler['to_email'],
+                $handler['subject'],
+                $handler['from_email'],
+                $handler['level'],
+                $handler['bubble'],
+            ));
+            break;
+
+        // Handlers using the constructor of AbstractHandler without adding their own arguments
+        case 'test':
+        case 'null':
+        case 'debug':
             $definition->setArguments(array(
                 $handler['level'],
                 $handler['bubble'],
             ));
             break;
+
+        default:
+            throw new \InvalidArgumentException(sprintf('Invalid handler type "%s" given for handler "%s"', $handler['type'], $name));
         }
 
-        if (!empty ($handler['formatter'])) {
+        if (!empty($handler['formatter'])) {
             $definition->addMethodCall('setFormatter', array(new Reference($handler['formatter'])));
-        }
-        if (!empty ($handler['processors'])) {
-            $this->addProcessors($definition, $handler['processors']);
         }
         $container->setDefinition($handlerId, $definition);
 
@@ -204,15 +244,5 @@ class MonologExtension extends Extension
     private function getHandlerId($name)
     {
         return sprintf('monolog.handler.%s', $name);
-    }
-
-    private function addProcessors(Definition $definition, array $processors)
-    {
-        foreach (array_reverse($processors) as $processor) {
-            if (0 === strpos($processor, '@')) {
-                $processor = new Reference(substr($processor, 1));
-            }
-            $definition->addMethodCall('pushProcessor', array($processor));
-        }
     }
 }

@@ -29,6 +29,8 @@ class Application extends BaseApplication
 
     /**
      * Constructor.
+     *
+     * @param KernelInterface $kernel A KernelInterface instance
      */
     public function __construct(KernelInterface $kernel)
     {
@@ -39,10 +41,6 @@ class Application extends BaseApplication
         $this->getDefinition()->addOption(new InputOption('--shell', '-s', InputOption::VALUE_NONE, 'Launch the shell.'));
         $this->getDefinition()->addOption(new InputOption('--env', '-e', InputOption::VALUE_REQUIRED, 'The Environment name.', 'dev'));
         $this->getDefinition()->addOption(new InputOption('--no-debug', null, InputOption::VALUE_NONE, 'Switches off debug mode.'));
-
-        $this->kernel->boot();
-
-        $this->registerCommands();
     }
 
     /**
@@ -65,6 +63,8 @@ class Application extends BaseApplication
      */
     public function doRun(InputInterface $input, OutputInterface $output)
     {
+        $this->registerCommands();
+
         if (true === $input->hasParameterOption(array('--shell', '-s'))) {
             $shell = new Shell($this);
             $shell->run();
@@ -77,6 +77,7 @@ class Application extends BaseApplication
 
     protected function registerCommands()
     {
+        $this->kernel->boot();
         foreach ($this->kernel->getBundles() as $bundle) {
             $bundle->registerCommands($this);
         }

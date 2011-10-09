@@ -20,6 +20,8 @@ use Symfony\Component\DependencyInjection\Reference;
  * YamlDumper dumps a service container as a YAML string.
  *
  * @author Fabien Potencier <fabien@symfony.com>
+ *
+ * @api
  */
 class YamlDumper extends Dumper
 {
@@ -29,32 +31,12 @@ class YamlDumper extends Dumper
      * @param  array  $options An array of options
      *
      * @return string A YAML string representing of the service container
+     *
+     * @api
      */
     public function dump(array $options = array())
     {
-        return $this->addParameters().$this->addInterfaceInjectors()."\n".$this->addServices();
-    }
-
-    /**
-     * Adds interface injectors
-     *
-     * @return string
-     */
-    private function addInterfaceInjectors()
-    {
-        if (!$this->container->getInterfaceInjectors()) {
-            return '';
-        }
-
-        $code = "\ninterfaces:\n";
-        foreach ($this->container->getInterfaceInjectors() as $injector) {
-            $code .= sprintf("    %s:\n", $injector->getClass());
-            if ($injector->getMethodCalls()) {
-                $code .= sprintf("        calls:\n          %s\n", str_replace("\n", "\n          ", Yaml::dump($this->dumpValue($injector->getMethodCalls()), 1)));
-            }
-        }
-
-        return $code;
+        return $this->addParameters()."\n".$this->addServices();
     }
 
     /**
@@ -135,7 +117,7 @@ class YamlDumper extends Dumper
      *
      * @param string $alias
      * @param string $id
-     * @return void
+     * @return string
      */
     private function addServiceAlias($alias, $id)
     {
@@ -218,7 +200,7 @@ class YamlDumper extends Dumper
     /**
      * Gets the service call.
      *
-     * @param string $id
+     * @param string    $id
      * @param Reference $reference
      * @return string
      */

@@ -22,17 +22,35 @@ use Symfony\Component\Config\ConfigCache;
  */
 class Router implements RouterInterface
 {
-    private $matcher;
-    private $generator;
-    private $options;
-    private $defaults;
-    private $context;
-    private $loader;
-    private $collection;
-    private $resource;
+    protected $matcher;
+    protected $generator;
+    protected $defaults;
+    protected $context;
+    protected $loader;
+    protected $collection;
+    protected $resource;
+    protected $options;
 
     /**
      * Constructor.
+     *
+     * @param LoaderInterface $loader   A LoaderInterface instance
+     * @param mixed           $resource The main resource to load
+     * @param array           $options  An array of options
+     * @param RequestContext  $context  The context
+     * @param array           $defaults The default values
+     */
+    public function __construct(LoaderInterface $loader, $resource, array $options = array(), RequestContext $context = null, array $defaults = array())
+    {
+        $this->loader = $loader;
+        $this->resource = $resource;
+        $this->context = null === $context ? new RequestContext() : $context;
+        $this->defaults = $defaults;
+        $this->setOptions($options);
+    }
+
+    /**
+     * Sets options.
      *
      * Available options:
      *
@@ -40,20 +58,12 @@ class Router implements RouterInterface
      *   * debug:         Whether to enable debugging or not (false by default)
      *   * resource_type: Type hint for the main resource (optional)
      *
-     * @param LoaderInterface $loader A LoaderInterface instance
-     * @param mixed           $resource The main resource to load
-     * @param array           $options  An array of options
-     * @param array           $context  The context
-     * @param array           $defaults The default values
+     * @param array $options An array of options
      *
      * @throws \InvalidArgumentException When unsupported option is provided
      */
-    public function __construct(LoaderInterface $loader, $resource, array $options = array(), array $context = array(), array $defaults = array())
+    public function setOptions(array $options)
     {
-        $this->loader = $loader;
-        $this->resource = $resource;
-        $this->context = $context;
-        $this->defaults = $defaults;
         $this->options = array(
             'cache_dir'              => null,
             'debug'                  => false,
@@ -81,8 +91,43 @@ class Router implements RouterInterface
         }
 
         if ($isInvalid) {
-            throw new \InvalidArgumentException(sprintf('The Router does not support the following options: \'%s\'.', implode('\', \'', $invalid)));
+            throw new \InvalidArgumentException(sprintf('The Router does not support the following options: "%s".', implode('\', \'', $invalid)));
         }
+    }
+
+    /**
+     * Sets an option.
+     *
+     * @param string $key   The key
+     * @param mixed  $value The value
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function setOption($key, $value)
+    {
+        if (!array_key_exists($key, $this->options)) {
+            throw new \InvalidArgumentException(sprintf('The Router does not support the "%s" option.', $key));
+        }
+
+        $this->options[$key] = $value;
+    }
+
+    /**
+     * Gets an option value.
+     *
+     * @param string $key The key
+     *
+     * @return mixed The value
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function getOption($key)
+    {
+        if (!array_key_exists($key, $this->options)) {
+            throw new \InvalidArgumentException(sprintf('The Router does not support the "%s" option.', $key));
+        }
+
+        return $this->options[$key];
     }
 
     /**
@@ -102,24 +147,36 @@ class Router implements RouterInterface
     /**
      * Sets the request context.
      *
-     * @param array $context  The context
+     * @param RequestContext $context The context
      */
-    public function setContext(array $context = array())
+    public function setContext(RequestContext $context)
     {
+        $this->context = $context;
+
         $this->getMatcher()->setContext($context);
         $this->getGenerator()->setContext($context);
+    }
+
+    /**
+     * Gets the request context.
+     *
+     * @return RequestContext The context
+     */
+    public function getContext()
+    {
+        return $this->context;
     }
 
     /**
      * Generates a URL from the given parameters.
      *
      * @param  string  $name       The name of the route
-     * @param  array   $parameters An array of parameters
+     * @param  mixed   $parameters An array of parameters
      * @param  Boolean $absolute   Whether to generate an absolute URL
      *
      * @return string The generated URL
      */
-    public function generate($name, array $parameters = array(), $absolute = false)
+    public function generate($name, $parameters = array(), $absolute = false)
     {
         return $this->getGenerator()->generate($name, $parameters, $absolute);
     }

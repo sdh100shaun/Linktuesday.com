@@ -28,6 +28,7 @@ class Translator extends BaseTranslator
     protected $container;
     protected $options;
     protected $session;
+    protected $loaderIds;
 
     /**
      * Constructor.
@@ -39,15 +40,17 @@ class Translator extends BaseTranslator
      *
      * @param ContainerInterface $container A ContainerInterface instance
      * @param MessageSelector    $selector  The message selector for pluralization
+     * @param array              $loaderIds An array of loader Ids
      * @param array              $options   An array of options
      * @param Session            $session   A Session instance
      */
-    public function __construct(ContainerInterface $container, MessageSelector $selector, array $options = array(), Session $session = null)
+    public function __construct(ContainerInterface $container, MessageSelector $selector, $loaderIds = array(), array $options = array(), Session $session = null)
     {
         parent::__construct(null, $selector);
 
         $this->session = $session;
         $this->container = $container;
+        $this->loaderIds = $loaderIds;
 
         $this->options = array(
             'cache_dir' => null,
@@ -56,7 +59,7 @@ class Translator extends BaseTranslator
 
         // check option names
         if ($diff = array_diff(array_keys($options), array_keys($this->options))) {
-            throw new \InvalidArgumentException(sprintf('The Router does not support the following options: \'%s\'.', implode('\', \'', $diff)));
+            throw new \InvalidArgumentException(sprintf('The Translator does not support the following options: \'%s\'.', implode('\', \'', $diff)));
         }
 
         $this->options = array_merge($this->options, $options);
@@ -95,10 +98,34 @@ class Translator extends BaseTranslator
 
             parent::loadCatalogue($locale);
 
-            $content = sprintf(
-                "<?php use Symfony\Component\Translation\MessageCatalogue; return new MessageCatalogue('%s', %s);",
+            $fallbackContent = '';
+            $fallback = $this->computeFallbackLocale($locale);
+            if ($fallback && $fallback != $locale) {
+                $fallbackContent = sprintf(<<<EOF
+\$catalogue->addFallbackCatalogue(new MessageCatalogue('%s', %s));
+EOF
+                    ,
+                    $fallback,
+                    var_export($this->catalogues[$fallback]->all(), true)
+                );
+            }
+
+            $content = sprintf(<<<EOF
+<?php
+
+use Symfony\Component\Translation\MessageCatalogue;
+
+\$catalogue = new MessageCatalogue('%s', %s);
+
+%s
+
+return \$catalogue;
+
+EOF
+                ,
                 $locale,
-                var_export($this->catalogues[$locale]->all(), true)
+                var_export($this->catalogues[$locale]->all(), true),
+                $fallbackContent
             );
 
             $cache->write($content, $this->catalogues[$locale]->getResources());
@@ -111,12 +138,8 @@ class Translator extends BaseTranslator
 
     protected function initialize()
     {
-        foreach ($this->container->getParameter('translation.loaders') as $id => $alias) {
+        foreach ($this->loaderIds as $id => $alias) {
             $this->addLoader($alias, $this->container->get($id));
-        }
-
-        foreach ($this->container->getParameter('translation.resources') as $resource) {
-            $this->addResource($resource[0], $resource[1], $resource[2], $resource[3]);
         }
     }
 }

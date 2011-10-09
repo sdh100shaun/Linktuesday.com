@@ -41,6 +41,7 @@ class TranslationExtension extends \Twig_Extension
     {
         return array(
             'trans' => new \Twig_Filter_Method($this, 'trans'),
+            'transchoice' => new \Twig_Filter_Method($this, 'transchoice'),
         );
     }
 
@@ -52,7 +53,7 @@ class TranslationExtension extends \Twig_Extension
     public function getTokenParsers()
     {
         return array(
-            // {% trans "Symfony is great!" %}
+            // {% trans %}Symfony is great!{% endtrans %}
             new TransTokenParser(),
 
             // {% transchoice count %}
@@ -62,9 +63,14 @@ class TranslationExtension extends \Twig_Extension
         );
     }
 
-    public function trans($message, array $arguments = array(), $domain = "messages")
+    public function trans($message, array $arguments = array(), $domain = "messages", $locale = null)
     {
-        return $this->translator->trans($message, $arguments, $domain);
+        return $this->translator->trans($message, $arguments, $domain, $locale);
+    }
+
+    public function transchoice($message, $count, array $arguments = array(), $domain = "messages", $locale = null)
+    {
+        return $this->translator->transChoice($message, $count, array_merge(array('%count%' => $count), $arguments), $domain, $locale);
     }
 
     /**

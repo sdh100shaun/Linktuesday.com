@@ -12,6 +12,7 @@
 namespace Assetic\Filter;
 
 use Assetic\Asset\AssetInterface;
+use Assetic\Util\ProcessBuilder;
 
 /**
  * Compiles CoffeeScript into Javascript.
@@ -32,10 +33,21 @@ class CoffeeScriptFilter implements FilterInterface
 
     public function filterLoad(AssetInterface $asset)
     {
-        $options = array($this->nodePath, $this->coffeePath, '-sc');
+        $input = tempnam(sys_get_temp_dir(), 'assetic_coffeescript');
+        file_put_contents($input, $asset->getContent());
 
-        $proc = new Process(implode(' ', array_map('escapeshellarg', $options)), null, array(), $asset->getContent());
+        $pb = new ProcessBuilder();
+        $pb
+            ->inheritEnvironmentVariables()
+            ->add($this->nodePath)
+            ->add($this->coffeePath)
+            ->add('-cp')
+            ->add($input)
+        ;
+
+        $proc = $pb->getProcess();
         $code = $proc->run();
+        unlink($input);
 
         if (0 < $code) {
             throw new \RuntimeException($proc->getErrorOutput());

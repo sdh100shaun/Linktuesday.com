@@ -1,10 +1,11 @@
 <?php
 
 $container->loadFromExtension('framework', array(
+    'secret' => 's3cr3t',
+    'form' => null,
     'csrf_protection' => array(
         'enabled'    => true,
         'field_name' => '_csrf',
-        'secret'     => 's3cr3t',
     ),
     'esi' => array(
         'enabled' => true,
@@ -13,15 +14,13 @@ $container->loadFromExtension('framework', array(
         'only_exceptions' => true,
     ),
     'router' => array(
-        'cache_warmer' => true,
         'resource'     => '%kernel.root_dir%/config/routing.xml',
         'type'         => 'xml',
     ),
     'session' => array(
         'auto_start'     => true,
-        'class'          => 'Session',
         'default_locale' => 'fr',
-        'storage_id'     => 'native',
+        'storage_id'     => 'session.storage.native',
         'name'           => '_SYMFONY',
         'lifetime'       => 86400,
         'path'           => '/',
@@ -33,7 +32,6 @@ $container->loadFromExtension('framework', array(
         'assets_version'   => 'SomeVersionScheme',
         'assets_base_urls' => 'http://cdn.example.com',
         'cache'            => '/path/to/cache',
-        'cache_warmer'     => true,
         'engines'          => array('php', 'twig'),
         'loader'           => array('loader.foo', 'loader.bar'),
         'packages'         => array(
@@ -48,6 +46,9 @@ $container->loadFromExtension('framework', array(
                 'base_urls' => array('http://bar1.example.com', 'http://bar2.example.com'),
             ),
         ),
+        'form'              => array(
+            'resources'     => array('theme1', 'theme2')
+        ),
     ),
     'translator' => array(
         'enabled'  => true,
@@ -57,4 +58,10 @@ $container->loadFromExtension('framework', array(
         'enabled' => true,
         'cache'   => 'apc',
     ),
+    'annotations' => array(
+        'cache' => 'file',
+        'debug' => true,
+        'file_cache_dir' => '%kernel.cache_dir%/annotations',
+    ),
+    'ide' => 'file%%link%%format'
 ));

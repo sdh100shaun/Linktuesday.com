@@ -13,7 +13,7 @@ namespace Assetic\Filter\Yui;
 
 use Assetic\Asset\AssetInterface;
 use Assetic\Filter\FilterInterface;
-use Assetic\Filter\Process;
+use Assetic\Util\ProcessBuilder;
 
 /**
  * Base YUI compressor filter.
@@ -24,7 +24,7 @@ abstract class BaseCompressorFilter implements FilterInterface
 {
     private $jarPath;
     private $javaPath;
-    private $charset = 'utf-8';
+    private $charset;
     private $lineBreak;
 
     public function __construct($jarPath, $javaPath = '/usr/bin/java')
@@ -58,32 +58,51 @@ abstract class BaseCompressorFilter implements FilterInterface
      */
     protected function compress($content, $type, $options = array())
     {
-        // prepend the start of the command
-        $options = array_merge(array(
-            $this->javaPath,
-            '-jar',
-            $this->jarPath,
-            '--type',
-            $type,
-        ), $options);
+        $pb = new ProcessBuilder();
+        $pb
+            ->inheritEnvironmentVariables()
+            ->add($this->javaPath)
+            ->add('-jar')
+            ->add($this->jarPath)
+        ;
+
+        foreach ($options as $option) {
+            $pb->add($option);
+        }
 
         if (null !== $this->charset) {
-            $options[] = '--charset';
-            $options[] = $this->charset;
+            $pb->add('--charset')->add($this->charset);
         }
 
         if (null !== $this->lineBreak) {
-            $options[] = '--line-break';
-            $options[] = $this->lineBreak;
+            $pb->add('--line-break')->add($this->lineBreak);
         }
 
-        $proc = new Process(implode(' ', array_map('escapeshellarg', $options)), null, array(), $content);
+        // input and output files
+        $tempDir = realpath(sys_get_temp_dir());
+        $hash = substr(sha1(time().rand(11111, 99999)), 0, 7);
+        $input = $tempDir.DIRECTORY_SEPARATOR.$hash.'.'.$type;
+        $output = $tempDir.DIRECTORY_SEPARATOR.$hash.'-min.'.$type;
+        file_put_contents($input, $content);
+        $pb->add('-o')->add($output)->add($input);
+
+        $proc = $pb->getProcess();
         $code = $proc->run();
+        unlink($input);
 
         if (0 < $code) {
+            if (file_exists($output)) {
+                unlink($output);
+            }
+
             throw new \RuntimeException($proc->getErrorOutput());
+        } elseif (!file_exists($output)) {
+            throw new \RuntimeException('Error creating output file.');
         }
 
-        return $proc->getOutput();
+        $retval = file_get_contents($output);
+        unlink($output);
+
+        return $retval;
     }
 }

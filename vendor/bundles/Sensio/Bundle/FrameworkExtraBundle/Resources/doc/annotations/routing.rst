@@ -1,15 +1,17 @@
-@extra:Route
-============
+@Route and @Method
+==================
 
 Usage
 -----
 
-The @extra:Route annotation maps a route pattern with a controller::
+The @Route annotation maps a route pattern with a controller::
+
+    use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 
     class PostController extends Controller
     {
         /**
-         * @extra:Route("/")
+         * @Route("/")
          */
         public function indexAction()
         {
@@ -30,7 +32,18 @@ Like any route pattern, you can define placeholders, requirements, and default
 values::
 
     /**
-     * @extra:Route("/{id}", requirements={"id" = "\d+"}, defaults={"foo" = "bar"})
+     * @Route("/{id}", requirements={"id" = "\d+"}, defaults={"foo" = "bar"})
+     */
+    public function showAction($id)
+    {
+    }
+
+You can also match more than one URL by defining additional ``@Route``
+annotations::
+
+    /**
+     * @Route("/", defaults={"id" = 1})
+     * @Route("/{id}")
      */
     public function showAction($id)
     {
@@ -60,15 +73,6 @@ You can also import a whole directory:
         resource: "@SensioBlogBundle/Controller"
         type:     annotation
 
-Or even import all controllers:
-
-.. code-block:: yaml
-
-    # import routes from all controllers
-    all:
-        resource: */Controller
-        type:     annotation
-
 As for any other resource, you can "mount" the routes under a given prefix:
 
 .. code-block:: yaml
@@ -81,13 +85,14 @@ As for any other resource, you can "mount" the routes under a given prefix:
 Route Name
 ----------
 
-By default, a route defined with the ``@extra:Route`` annotation is given a name
-based on the controller class and method names:
-``sensioblogbundle_controller_postcontroller_indexaction`` for the above example;
-the ``name`` attribute overrides the generated route name::
+A route defined with the ``@Route`` annotation is given a default name composed
+of the bundle name, the controller name and the action name. That would be
+``sensio_blog_post_index`` for the above example;
+
+The ``name`` attribute can be used to override this default route name::
 
     /**
-     * @extra:Route("/", name="blog_home")
+     * @Route("/", name="blog_home")
      */
     public function indexAction()
     {
@@ -97,16 +102,16 @@ the ``name`` attribute overrides the generated route name::
 Route Prefix
 ------------
 
-A ``@extra:Route`` annotation on a controller class defines a prefix for all action
+A ``@Route`` annotation on a controller class defines a prefix for all action
 routes::
 
     /**
-     * @extra:Route("/blog")
+     * @Route("/blog")
      */
     class PostController extends Controller
     {
         /**
-         * @extra:Route("/{id}")
+         * @Route("/{id}")
          */
         public function showAction($id)
         {
@@ -114,3 +119,33 @@ routes::
     }
 
 The ``show`` action is now mapped to the ``/blog/{id}`` pattern.
+
+Route Method
+------------
+
+There is a shortcut ``@Method`` annotation to specify the HTTP method allowed
+for the route. To use it, import the ``Method`` annotation namespace::
+
+    use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
+    use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
+
+    /**
+     * @Route("/blog")
+     */
+    class PostController extends Controller
+    {
+        /**
+         * @Route("/edit/{id}")
+         * @Method({"GET", "POST"})
+         */
+        public function editAction($id)
+        {
+        }
+    }
+
+The ``edit`` action is now mapped to the ``/blog/edit/{id}`` pattern if the HTTP
+method used is either GET or POST.
+
+The ``@Method`` annotation is only considered when an action is annotated with
+``@Route``.
+

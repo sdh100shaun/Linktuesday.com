@@ -50,7 +50,7 @@ class CacheLoader extends Loader
      */
     public function load(TemplateReferenceInterface $template)
     {
-        $key = $template->getSignature();
+        $key = md5($template->getLogicalName());
         $dir = $this->dir.DIRECTORY_SEPARATOR.substr($key, 0, 2);
         $file = substr($key, 2).'.tpl';
         $path = $dir.DIRECTORY_SEPARATOR.$file;
@@ -85,8 +85,8 @@ class CacheLoader extends Loader
     /**
      * Returns true if the template is still fresh.
      *
-     * @param TemplateReferenceInterface    $template A template
-     * @param integer                       $time     The last modification time of the cached template (timestamp)
+     * @param TemplateReferenceInterface $template A template
+     * @param integer                    $time     The last modification time of the cached template (timestamp)
      */
     public function isFresh(TemplateReferenceInterface $template, $time)
     {
