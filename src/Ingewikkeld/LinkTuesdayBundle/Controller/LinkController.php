@@ -3,12 +3,14 @@
 namespace Ingewikkeld\LinkTuesdayBundle\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 
 class LinkController extends Controller
 {
     /**
-     * @extra:Route("/", name="lt_homepage")
-     * @extra:Template()
+     * @Route("/", name="lt_homepage")
+     * @Template()
      */
     public function indexAction()
     {
@@ -22,8 +24,8 @@ class LinkController extends Controller
     }
 
     /**
-     * @extra:Route("/feed", name="lt_feed")
-     * @extra:Template()
+     * @Route("/feed", name="lt_feed")
+     * @Template()
      */
     public function rssAction()
     {
