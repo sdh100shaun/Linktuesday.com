@@ -2,7 +2,7 @@
 
 namespace Ingewikkeld\LinkTuesdayBundle\Command;
 
-use Symfony\Bundle\FrameworkBundle\Command\Command;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
@@ -20,7 +20,7 @@ use Ingewikkeld\LinkTuesdayBundle\Entity\Tweet;
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-class FetchTweetCommand extends Command
+class FetchTweetCommand extends ContainerAwareCommand
 {
     /**
      * @see Command
@@ -48,7 +48,7 @@ EOT
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $em = $this->container->get('doctrine.orm.default_entity_manager');
+        $em = $this->getContainer()->get('doctrine')->getEntityManager();
         $search = new Search();
 
         $results = $search->search('#linktuesday', array('lang' => 'en'));
@@ -101,7 +101,7 @@ EOT
 
                     $em->persist($tweet);
                 }
-                
+
                 $em->flush();
             }
         }
